@@ -214,36 +214,43 @@ async def list_all_accessible_tasks(
     """
     List all tasks that the current user has access to.
     - Admins see all non-personal tasks (and their own personal tasks).
-    - Others see tasks in their organisation's projects where they have access, plus their own personal tasks.
+    - Managers see all non-personal tasks in their organisation (and their own personal tasks).
+    - Others see tasks in projects they created, projects where they have manager/editor access, or tasks explicitly assigned to them.
     """
     if current_user.role == UserRole.ADMIN:
         tasks = db.query(Task).filter(
             or_(Task.is_personal == False, Task.created_by == current_user.id)
         ).all()
+    elif current_user.role == UserRole.MANAGER:
+        tasks = db.query(Task).join(Project, Task.project_id == Project.id).filter(
+            Project.org_id == current_user.organisation_id,
+            or_(Task.is_personal == False, Task.created_by == current_user.id)
+        ).all()
     else:
-        from app.models.project_access import ProjectAccess
+        from app.models.project_access import ProjectAccess, ProjectAccessRole
         
-        # Subquery for projects the user has access to
-        accessible_project_ids = db.query(Project.id).filter(Project.org_id == current_user.organisation_id)
-        if current_user.role != UserRole.MANAGER:
-            # Non-managers: filter by explicit access or creator
-            accessible_project_ids = accessible_project_ids.outerjoin(
-                ProjectAccess, Project.id == ProjectAccess.project_id
-            ).filter(
-                (Project.created_by == current_user.id) | 
-                (ProjectAccess.user_id == current_user.id)
+        # Projects where user has full task visibility (created project, or has editor/manager role)
+        full_access_project_ids = db.query(Project.id).outerjoin(
+            ProjectAccess, Project.id == ProjectAccess.project_id
+        ).filter(
+            Project.org_id == current_user.organisation_id,
+            or_(
+                Project.created_by == current_user.id,
+                (ProjectAccess.user_id == current_user.id) & (ProjectAccess.role.in_([ProjectAccessRole.EDITOR, ProjectAccessRole.MANAGER]))
             )
+        ).subquery()
         
-        accessible_ids = [p_id[0] for p_id in accessible_project_ids.all()]
-        
-        # Query tasks in those projects, or assigned to current user, or own personal tasks
+        # Query tasks:
+        # - Non-personal tasks in full-access projects
+        # - OR non-personal tasks where user is explicitly assigned
+        # - OR personal tasks created by current user
         tasks = db.query(Task).outerjoin(
             TaskAssignee, Task.id == TaskAssignee.task_id
         ).filter(
             or_(
-                (Task.project_id.in_(accessible_ids) & (Task.is_personal == False)),
-                TaskAssignee.user_id == current_user.id,
-                (Task.is_personal == True) & (Task.created_by == current_user.id)
+                (Task.project_id.in_(full_access_project_ids) & (Task.is_personal == False)),
+                ((TaskAssignee.user_id == current_user.id) & (Task.is_personal == False)),
+                ((Task.is_personal == True) & (Task.created_by == current_user.id))
             )
         ).distinct().all()
 
@@ -562,7 +569,31 @@ async def get_project_tasks(
     db: Session = Depends(get_db)
 ):
     _assert_project_access(project_id, current_user, db)
-    tasks = db.query(Task).filter(Task.project_id == project_id, Task.is_personal == False).all()
+    
+    if current_user.role in [UserRole.ADMIN, UserRole.MANAGER]:
+        tasks = db.query(Task).filter(Task.project_id == project_id, Task.is_personal == False).all()
+    else:
+        from app.models.project_access import ProjectAccess, ProjectAccessRole
+        access = db.query(ProjectAccess).filter(
+            ProjectAccess.project_id == project_id,
+            ProjectAccess.user_id == current_user.id
+        ).first()
+        
+        project = db.query(Project).filter(Project.id == project_id).first()
+        
+        # If they are project editor/manager or project creator, they see all tasks
+        if (access and access.role in [ProjectAccessRole.EDITOR, ProjectAccessRole.MANAGER]) or (project and project.created_by == current_user.id):
+            tasks = db.query(Task).filter(Task.project_id == project_id, Task.is_personal == False).all()
+        else:
+            # Otherwise (viewers / implicit access), they only see tasks assigned to them
+            tasks = db.query(Task).join(
+                TaskAssignee, Task.id == TaskAssignee.task_id
+            ).filter(
+                Task.project_id == project_id,
+                Task.is_personal == False,
+                TaskAssignee.user_id == current_user.id
+            ).all()
+            
     return _bulk_tasks_to_response(tasks, db)
 
 
