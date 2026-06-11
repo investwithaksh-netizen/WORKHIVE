@@ -34,6 +34,7 @@ class ProjectResponse(BaseModel):
     status: str
     due_date: Optional[str]
     created_by: str
+    created_by_name: Optional[str] = None
     created_at: str
 
 
@@ -54,7 +55,7 @@ class ProjectAccessResponse(BaseModel):
 async def create_project(
     project: ProjectCreate,
     request: Request,
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.MANAGER])),
+    current_user: User = Depends(require_role([UserRole.L1, UserRole.L2])),
     db: Session = Depends(get_db)
 ):
     new_project = Project(
@@ -82,6 +83,7 @@ async def create_project(
         status=new_project.status.value,
         due_date=new_project.due_date.isoformat() if new_project.due_date else None,
         created_by=str(new_project.created_by),
+        created_by_name=current_user.full_name,
         created_at=new_project.created_at.isoformat()
     )
 
@@ -96,16 +98,16 @@ async def get_projects(
     if not current_user.organisation_id:
         return []
 
-    if current_user.role == UserRole.ADMIN:
+    if current_user.role == UserRole.L1:
         projects = db.query(Project).filter(
             Project.org_id == current_user.organisation_id
         ).offset(skip).limit(limit).all()
-    elif current_user.role == UserRole.MANAGER:
+    elif current_user.role == UserRole.L2:
         projects = db.query(Project).filter(
             Project.org_id == current_user.organisation_id
         ).offset(skip).limit(limit).all()
     else:
-        # Employees and Clients can only see projects they created, have been granted access to, or have tasks assigned to them
+        # L3 and Clients can only see projects they created, have been granted access to, or have tasks assigned to them
         from app.models.project_access import ProjectAccess
         from app.models.task_assignee import TaskAssignee
         
@@ -126,6 +128,13 @@ async def get_projects(
              (Project.created_by == current_user.id))
         ).offset(skip).limit(limit).all()
     
+    # Fetch all creator names in one query to avoid N+1 queries
+    creator_ids = list({p.created_by for p in projects})
+    creator_map = {}
+    if creator_ids:
+        creators = db.query(User.id, User.full_name).filter(User.id.in_(creator_ids)).all()
+        creator_map = {str(uid): name for uid, name in creators}
+    
     return [
         ProjectResponse(
             id=str(p.id),
@@ -134,6 +143,7 @@ async def get_projects(
             status=p.status.value,
             due_date=p.due_date.isoformat() if p.due_date else None,
             created_by=str(p.created_by),
+            created_by_name=creator_map.get(str(p.created_by)),
             created_at=p.created_at.isoformat()
         )
         for p in projects
@@ -161,7 +171,7 @@ async def get_project(
         )
         
     # Check project-level IAM access for non-admins and non-managers
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+    if current_user.role not in [UserRole.L1, UserRole.L2]:
         from app.models.project_access import ProjectAccess
         from app.models.task_assignee import TaskAssignee
         
@@ -183,6 +193,11 @@ async def get_project(
                 detail="Not authorized to view this project"
             )
     
+    creator_name = None
+    creator = db.query(User).filter(User.id == project.created_by).first()
+    if creator:
+        creator_name = creator.full_name
+
     return ProjectResponse(
         id=str(project.id),
         name=project.name,
@@ -190,6 +205,7 @@ async def get_project(
         status=project.status.value,
         due_date=project.due_date.isoformat() if project.due_date else None,
         created_by=str(project.created_by),
+        created_by_name=creator_name,
         created_at=project.created_at.isoformat()
     )
 
@@ -199,7 +215,7 @@ async def update_project(
     project_id: uuid.UUID,
     project_update: ProjectUpdate,
     request: Request,
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.MANAGER])),
+    current_user: User = Depends(require_role([UserRole.L1, UserRole.L2])),
     db: Session = Depends(get_db)
 ):
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -232,6 +248,11 @@ async def update_project(
     db.commit()
     db.refresh(project)
     
+    creator_name = None
+    creator = db.query(User).filter(User.id == project.created_by).first()
+    if creator:
+        creator_name = creator.full_name
+
     return ProjectResponse(
         id=str(project.id),
         name=project.name,
@@ -239,6 +260,7 @@ async def update_project(
         status=project.status.value,
         due_date=project.due_date.isoformat() if project.due_date else None,
         created_by=str(project.created_by),
+        created_by_name=creator_name,
         created_at=project.created_at.isoformat()
     )
 
@@ -247,7 +269,7 @@ async def update_project(
 async def delete_project(
     project_id: uuid.UUID,
     request: Request,
-    current_user: User = Depends(require_role([UserRole.ADMIN])),
+    current_user: User = Depends(require_role([UserRole.L1])),
     db: Session = Depends(get_db)
 ):
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -319,7 +341,7 @@ async def delete_project(
 @router.get("/{project_id}/access", response_model=List[ProjectAccessResponse])
 async def get_project_access(
     project_id: uuid.UUID,
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.MANAGER])),
+    current_user: User = Depends(require_role([UserRole.L1, UserRole.L2])),
     db: Session = Depends(get_db)
 ):
     # Verify project exists and is in user's org
@@ -350,7 +372,7 @@ async def grant_project_access(
     project_id: uuid.UUID,
     access_data: ProjectAccessCreate,
     request: Request,
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.MANAGER])),
+    current_user: User = Depends(require_role([UserRole.L1, UserRole.L2])),
     db: Session = Depends(get_db)
 ):
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -408,7 +430,7 @@ async def revoke_project_access(
     project_id: uuid.UUID,
     user_id: uuid.UUID,
     request: Request,
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.MANAGER])),
+    current_user: User = Depends(require_role([UserRole.L1, UserRole.L2])),
     db: Session = Depends(get_db)
 ):
     project = db.query(Project).filter(Project.id == project_id).first()

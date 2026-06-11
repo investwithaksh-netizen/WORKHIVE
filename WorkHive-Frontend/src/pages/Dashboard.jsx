@@ -399,8 +399,8 @@ export default function Dashboard() {
     setStats(prev => ({ ...prev, tasks: Math.max(0, prev.tasks - 1) }))
   }
 
-  const isAdmin = user?.role === 'admin'
-  const isManager = user?.role === 'manager'
+  const isAdmin = user?.role === 'L1'
+  const isManager = user?.role === 'L2'
 
   useEffect(() => {
     fetchData()

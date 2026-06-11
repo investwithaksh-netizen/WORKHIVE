@@ -282,7 +282,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onUpdate, onDelete, c
   if (!task) return null
 
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done'
-  const canEdit = ['admin', 'manager'].includes(currentUser?.role) || task.created_by === currentUser?.id
+  const canEdit = ['L1', 'L2'].includes(currentUser?.role) || task.created_by === currentUser?.id
 
   return (
     <div style={{
@@ -564,7 +564,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onUpdate, onDelete, c
                   ) : comments.map(c => {
                     const isEditingThisComment = editingCommentId === c.id
                     const canEditComment = c.author_id === currentUser?.id
-                    const canDeleteComment = ['admin', 'manager'].includes(currentUser?.role) || c.author_id === currentUser?.id
+                    const canDeleteComment = ['L1', 'L2'].includes(currentUser?.role) || c.author_id === currentUser?.id
 
                     return (
                       <div key={c.id} className="activity-item" style={{ alignItems: 'flex-start' }}>
@@ -793,8 +793,8 @@ export default function ProjectDetail() {
     setTimeout(() => setToast(null), 4000)
   }
 
-  const canManage = ['admin', 'manager'].includes(user?.role)
-  const isWorkspaceAdminOrManager = ['admin', 'manager'].includes(user?.role)
+  const canManage = ['L1', 'L2'].includes(user?.role)
+  const isWorkspaceAdminOrManager = ['L1', 'L2'].includes(user?.role)
 
   useEffect(() => {
     fetchAll()
@@ -1071,6 +1071,20 @@ export default function ProjectDetail() {
                 {project.description}
               </p>
             )}
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+              {project.created_by_name && (
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-400)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span>Created by:</span>
+                  <strong style={{ color: 'var(--gray-600)' }}>{project.created_by_name}</strong>
+                </span>
+              )}
+              {project.due_date && (
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-400)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span>Due:</span>
+                  <strong style={{ color: 'var(--gray-600)' }}>{new Date(project.due_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
+                </span>
+              )}
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             {canManage && (
@@ -1082,7 +1096,7 @@ export default function ProjectDetail() {
                 Edit Project
               </button>
             )}
-            {user?.role === 'admin' && (
+            {user?.role === 'L1' && (
               <button
                 className="btn btn-secondary"
                 onClick={handleDeleteProject}
@@ -1529,7 +1543,7 @@ export default function ProjectDetail() {
             ) : projectAccess.length === 0 ? (
               <div className="empty-state" style={{ padding: '2rem 0' }}>
                 <p className="empty-state-title">No explicit access rights</p>
-                <p className="empty-state-desc">Only Admins, Managers, and the project creator can view this project. Use the form to grant access to employees or clients.</p>
+                <p className="empty-state-desc">Only L1, L2, and the project creator can view this project. Use the form to grant access to L3 or clients.</p>
               </div>
             ) : (
               <div className="table-container">

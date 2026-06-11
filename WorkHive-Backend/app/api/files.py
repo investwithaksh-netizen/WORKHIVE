@@ -218,7 +218,7 @@ async def delete_file(
     
     # Check if user is the uploader, has project manager access, or is admin/manager role
     is_project_manager = False
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+    if current_user.role not in [UserRole.L1, UserRole.L2]:
         from app.models.project_access import ProjectAccess
         access = db.query(ProjectAccess).filter(
             ProjectAccess.project_id == file_record.project_id,
@@ -228,7 +228,7 @@ async def delete_file(
             is_project_manager = True
 
     if (file_record.uploaded_by != current_user.id and 
-        current_user.role not in [UserRole.ADMIN, UserRole.MANAGER] and
+        current_user.role not in [UserRole.L1, UserRole.L2] and
         not is_project_manager):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

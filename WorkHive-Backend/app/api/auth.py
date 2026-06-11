@@ -28,7 +28,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     full_name: str
-    role: Optional[UserRole] = UserRole.EMPLOYEE
+    role: Optional[UserRole] = UserRole.L3
 
     @field_validator("password")
     @classmethod
@@ -205,7 +205,7 @@ async def register(request: Request, user_data: UserRegister, background_tasks: 
     """
     
     # Notify and email admins in the organisation
-    admins = db.query(User).filter(User.role == UserRole.ADMIN, User.organisation_id == default_org.id).all()
+    admins = db.query(User).filter(User.role == UserRole.L1, User.organisation_id == default_org.id).all()
     from app.models.notification import Notification
     for admin in admins:
         # Create in-app notification
@@ -335,7 +335,7 @@ async def google_login(
             email=email,
             password_hash=None,
             full_name=full_name,
-            role=UserRole.EMPLOYEE,
+            role=UserRole.L3,
             is_active=True,
             approval_status="approved",
             auth_provider="google",

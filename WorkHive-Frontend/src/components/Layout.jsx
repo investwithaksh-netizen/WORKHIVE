@@ -8,8 +8,8 @@ const NAV_ITEMS = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/projects',  icon: Briefcase, label: 'Projects' },
   { path: '/calendar',  icon: Calendar, label: 'Calendar' },
-  { path: '/team',      icon: Users, label: 'Team',      roles: ['admin', 'manager'] },
-  { path: '/audit',     icon: Shield, label: 'Audit Logs', roles: ['admin'] },
+  { path: '/team',      icon: Users, label: 'Team',      roles: ['L1', 'L2'] },
+  { path: '/audit',     icon: Shield, label: 'Audit Logs', roles: ['L1'] },
 ]
 
 function NotificationBell() {

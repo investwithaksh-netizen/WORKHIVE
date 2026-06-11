@@ -9,9 +9,9 @@ from app.core.database import Base
 
 class UserRole(enum.Enum):
     CLIENT = "client"
-    EMPLOYEE = "employee"
-    MANAGER = "manager"
-    ADMIN = "admin"
+    L3 = "L3"
+    L2 = "L2"
+    L1 = "L1"
 
 
 class User(Base):
@@ -22,7 +22,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=True)
     auth_provider = Column(String(50), default="local", server_default="local", nullable=False)
     full_name = Column(String(255), nullable=False)
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.EMPLOYEE)
+    role = Column(Enum(UserRole), nullable=False, default=UserRole.L3)
     is_active = Column(Boolean, default=True, nullable=False)
     approval_status = Column(String(50), default="approved", server_default="approved", nullable=False)
     mfa_enabled = Column(Boolean, default=False, nullable=False)

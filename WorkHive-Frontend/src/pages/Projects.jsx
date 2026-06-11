@@ -113,7 +113,7 @@ export default function Projects() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
 
-  const canCreate = ['admin', 'manager'].includes(user?.role)
+  const canCreate = ['L1', 'L2'].includes(user?.role)
 
   useEffect(() => { fetchProjects() }, [])
 
@@ -292,7 +292,7 @@ export default function Projects() {
                     <span>{project.due_date ? formatDate(project.due_date) : 'No due date'}</span>
                   </span>
                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-400)' }}>
-                    Created {formatDate(project.created_at)}
+                    Created {formatDate(project.created_at)}{project.created_by_name && ` by ${project.created_by_name}`}
                   </span>
                 </div>
               </div>

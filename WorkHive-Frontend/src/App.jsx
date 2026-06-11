@@ -71,7 +71,7 @@ function AppRoutes() {
       />
       <Route
         path="/audit"
-        element={isAuthenticated && user?.role === 'admin' ? <AuditLogs /> : <Navigate to="/dashboard" replace />}
+        element={isAuthenticated && user?.role === 'L1' ? <AuditLogs /> : <Navigate to="/dashboard" replace />}
       />
       <Route
         path="/"

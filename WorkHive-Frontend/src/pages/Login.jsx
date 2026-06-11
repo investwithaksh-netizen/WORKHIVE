@@ -10,7 +10,7 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
-  const [role, setRole] = useState('employee')
+  const [role, setRole] = useState('L3')
   const [isSignUp, setIsSignUp] = useState(location.pathname === '/signup')
   const [successMsg, setSuccessMsg] = useState('')
   const [error, setError] = useState('')
@@ -370,9 +370,9 @@ export default function Login() {
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
                   >
-                    <option value="employee">Employee (Team Member)</option>
+                    <option value="L3">L3 (Team Member)</option>
                     <option value="client">Client (Guest Account)</option>
-                    <option value="manager">Manager (Project Lead)</option>
+                    <option value="L2">L2 (Project Lead)</option>
                   </select>
                 </div>
 

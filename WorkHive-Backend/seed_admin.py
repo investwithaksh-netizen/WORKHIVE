@@ -48,7 +48,7 @@ def create_admin_user():
             email="admin@workhive.com",
             password_hash=get_password_hash("admin123"),
             full_name="Admin User",
-            role=UserRole.ADMIN,
+            role=UserRole.L1,
             is_active=True,
             organisation_id=default_org.id
         )

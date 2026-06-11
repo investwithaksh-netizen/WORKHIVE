@@ -29,7 +29,7 @@ export default function AuditLogs() {
   const [resourceFilter, setResourceFilter] = useState('all')
   const [error, setError] = useState('')
 
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'L1'
 
   useEffect(() => {
     if (!isAdmin) {

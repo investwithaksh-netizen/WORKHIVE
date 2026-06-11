@@ -152,7 +152,7 @@ def _assert_project_access(project_id: uuid.UUID, user: User, db: Session, requi
     if project.org_id != user.organisation_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
         
-    if user.role in [UserRole.ADMIN, UserRole.MANAGER]:
+    if user.role in [UserRole.L1, UserRole.L2]:
         return project
         
     if project.created_by == user.id:
@@ -217,11 +217,11 @@ async def list_all_accessible_tasks(
     - Managers see all non-personal tasks in their organisation (and their own personal tasks).
     - Others see tasks in projects they created, projects where they have manager/editor access, or tasks explicitly assigned to them.
     """
-    if current_user.role == UserRole.ADMIN:
+    if current_user.role == UserRole.L1:
         tasks = db.query(Task).filter(
             or_(Task.is_personal == False, Task.created_by == current_user.id)
         ).all()
-    elif current_user.role == UserRole.MANAGER:
+    elif current_user.role == UserRole.L2:
         tasks = db.query(Task).join(Project, Task.project_id == Project.id).filter(
             Project.org_id == current_user.organisation_id,
             or_(Task.is_personal == False, Task.created_by == current_user.id)
@@ -277,7 +277,7 @@ async def get_my_tasks(
 
 @router.get("/workload", response_model=List[WorkloadEntry])
 async def get_workload(
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.MANAGER])),
+    current_user: User = Depends(require_role([UserRole.L1, UserRole.L2])),
     db: Session = Depends(get_db)
 ):
     """
@@ -304,7 +304,7 @@ async def get_workload(
     }
 
     # Query org members
-    if current_user.role == UserRole.ADMIN:
+    if current_user.role == UserRole.L1:
         users = db.query(User).filter(User.is_active == True).all()
     else:
         users = db.query(User).filter(
@@ -610,7 +610,7 @@ async def get_project_tasks(
 ):
     _assert_project_access(project_id, current_user, db)
     
-    if current_user.role in [UserRole.ADMIN, UserRole.MANAGER]:
+    if current_user.role in [UserRole.L1, UserRole.L2]:
         tasks = db.query(Task).filter(Task.project_id == project_id, Task.is_personal == False).all()
     else:
         from app.models.project_access import ProjectAccess, ProjectAccessRole
@@ -672,7 +672,7 @@ async def update_task(
         if task.created_by == current_user.id:
             has_write_rights = True
     else:
-        if current_user.role in [UserRole.ADMIN, UserRole.MANAGER] or task.created_by == current_user.id:
+        if current_user.role in [UserRole.L1, UserRole.L2] or task.created_by == current_user.id:
             has_write_rights = True
         else:
             from app.models.project_access import ProjectAccess
@@ -710,7 +710,11 @@ async def update_task(
         task.title = task_update.title
     if task_update.description is not None:
         task.description = task_update.description
+    status_changed = False
+    old_status = task.status
     if task_update.status is not None:
+        if task_update.status != task.status:
+            status_changed = True
         task.status = task_update.status
     if task_update.priority is not None:
         task.priority = task_update.priority
@@ -807,6 +811,41 @@ async def update_task(
 
     db.commit()
     db.refresh(task)
+
+    # Send status update notifications
+    if status_changed and not task.is_personal:
+        # Fetch current assignees
+        assignee_rows = db.query(TaskAssignee).filter(TaskAssignee.task_id == task.id).all()
+        notify_user_ids = {task.created_by} | {row.user_id for row in assignee_rows}
+        notify_user_ids.discard(current_user.id)
+
+        from app.models.notification import Notification
+        from app.core.email import send_email
+
+        for uid in notify_user_ids:
+            db.add(Notification(
+                user_id=uid,
+                type="task_status_updated",
+                payload={
+                    "message": f"Task '{task.title}' status changed from '{old_status.value.replace('_', ' ')}' to '{task.status.value.replace('_', ' ')}' by {current_user.full_name}.",
+                    "link": f"/projects/{task.project_id}?task={task.id}"
+                },
+                is_read=False
+            ))
+
+            recipient = db.query(User).filter(User.id == uid).first()
+            if recipient and recipient.email:
+                subject = f"Task Status Updated: {task.title}"
+                body = f"""
+                <p>Hello <strong>{recipient.full_name}</strong>,</p>
+                <p>The status of the task <strong>"{task.title}"</strong> has been updated by {current_user.full_name}.</p>
+                <p><strong>Status Change:</strong> <code>{old_status.value.replace('_', ' ').upper()}</code> &rarr; <code>{task.status.value.replace('_', ' ').upper()}</code></p>
+                <p>You can view the task details and progress on your dashboard.</p>
+                <p>Best regards,<br>The WorkHive Team</p>
+                """
+                background_tasks.add_task(send_email, recipient.email, subject, body)
+        
+        db.commit()
             
     return _task_to_response(task, db)
 

@@ -19,8 +19,8 @@ export default function Team() {
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
 
-  const isAdmin = user?.role === 'admin'
-  const isManager = user?.role === 'manager'
+  const isAdmin = user?.role === 'L1'
+  const isManager = user?.role === 'L2'
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -364,9 +364,9 @@ export default function Team() {
                               onChange={(e) => handleRoleChange(member.id, e.target.value)}
                             >
                               <option value="client">client</option>
-                              <option value="employee">employee</option>
-                              <option value="manager">manager</option>
-                              <option value="admin">admin</option>
+                              <option value="L3">L3</option>
+                              <option value="L2">L2</option>
+                              <option value="L1">L1</option>
                             </select>
                           ) : (
                             <span className={`badge badge-${member.role}`}>

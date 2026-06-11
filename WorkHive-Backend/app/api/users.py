@@ -65,7 +65,7 @@ async def get_org_users(
 async def get_users(
     skip: int = 0,
     limit: int = 100,
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.MANAGER])),
+    current_user: User = Depends(require_role([UserRole.L1, UserRole.L2])),
     db: Session = Depends(get_db)
 ):
     """
@@ -73,7 +73,7 @@ async def get_users(
     - Admins see all users across all orgs.
     - Managers see only users in their own org.
     """
-    if current_user.role == UserRole.ADMIN:
+    if current_user.role == UserRole.L1:
         users = db.query(User).offset(skip).limit(limit).all()
     else:
         users = db.query(User).filter(
@@ -95,7 +95,7 @@ async def get_users(
 
 @router.get("/pending", response_model=List[UserResponse])
 async def get_pending_users(
-    current_user: User = Depends(require_role([UserRole.ADMIN])),
+    current_user: User = Depends(require_role([UserRole.L1])),
     db: Session = Depends(get_db)
 ):
     """Admin: list all users pending approval in the current admin's organisation."""
@@ -128,7 +128,7 @@ async def get_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     # Non-admins can only view themselves or org members
-    if (current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]
+    if (current_user.role not in [UserRole.L1, UserRole.L2]
             and current_user.id != user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
@@ -147,7 +147,7 @@ async def update_user(
     user_id: uuid.UUID,
     user_update: UserUpdate,
     request: Request,
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.MANAGER])),
+    current_user: User = Depends(require_role([UserRole.L1, UserRole.L2])),
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.id == user_id).first()
@@ -155,7 +155,7 @@ async def update_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     # Only admins can change roles
-    if user_update.role and current_user.role != UserRole.ADMIN:
+    if user_update.role and current_user.role != UserRole.L1:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admins can change user roles"
@@ -195,7 +195,7 @@ async def approve_user(
     user_id: uuid.UUID,
     request: Request,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(require_role([UserRole.ADMIN])),
+    current_user: User = Depends(require_role([UserRole.L1])),
     db: Session = Depends(get_db)
 ):
     """Admin: approve user registration."""
@@ -238,7 +238,7 @@ async def reject_user(
     user_id: uuid.UUID,
     request: Request,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(require_role([UserRole.ADMIN])),
+    current_user: User = Depends(require_role([UserRole.L1])),
     db: Session = Depends(get_db)
 ):
     """Admin: reject user registration."""
@@ -280,7 +280,7 @@ async def reject_user(
 async def delete_user(
     user_id: uuid.UUID,
     request: Request,
-    current_user: User = Depends(require_role([UserRole.ADMIN])),
+    current_user: User = Depends(require_role([UserRole.L1])),
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.id == user_id).first()

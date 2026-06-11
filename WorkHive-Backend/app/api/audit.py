@@ -40,7 +40,7 @@ async def list_audit_logs(
     resource_type: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
-    current_user: User = Depends(require_role([UserRole.ADMIN])),
+    current_user: User = Depends(require_role([UserRole.L1])),
     db: Session = Depends(get_db)
 ):
     """
