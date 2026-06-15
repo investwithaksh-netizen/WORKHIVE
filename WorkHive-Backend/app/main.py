@@ -13,6 +13,8 @@ from app.api.tasks import router as tasks_router
 from app.api.comments import router as comments_router
 from app.api.notifications import router as notifications_router
 from app.api.audit import router as audit_router
+from app.api.categories import router as categories_router
+from app.api.templates import router as templates_router
 
 app = FastAPI(
     title="WorkHive API",
@@ -48,6 +50,8 @@ app.include_router(tasks_router)
 app.include_router(comments_router)
 app.include_router(notifications_router)
 app.include_router(audit_router)
+app.include_router(categories_router)
+app.include_router(templates_router)
 
 
 @app.get("/")

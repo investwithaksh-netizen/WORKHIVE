@@ -17,13 +17,46 @@ function autoTag(filename) {
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
-function CreateTaskModal({ projectId, orgUsers, onClose, onCreate }) {
+function CreateTaskModal({ projectId, projectCategoryId, orgUsers, onClose, onCreate }) {
   const [form, setForm] = useState({
     title: '', description: '', priority: 'medium', assignee_ids: [], due_date: '', start_date: '', estimated_hours: ''
   })
+  const [templates, setTemplates] = useState([])
+  const [showTemplatesDropdown, setShowTemplatesDropdown] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false)
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const res = await api.get('/api/v1/templates')
+        setTemplates(res.data)
+      } catch { /* silent */ }
+    }
+    fetchTemplates()
+  }, [])
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest('#task-title-group')) {
+        setShowTemplatesDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [])
+
+  const handleTemplateSelect = (tpl) => {
+    setForm(f => ({
+      ...f,
+      title: tpl.title,
+      description: f.description || tpl.description || ''
+    }))
+    setSelectedTemplateId(tpl.id)
+    setShowTemplatesDropdown(false)
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -41,6 +74,9 @@ function CreateTaskModal({ projectId, orgUsers, onClose, onCreate }) {
         estimated_hours: form.estimated_hours ? parseFloat(form.estimated_hours) : null,
       }
       const res = await api.post('/api/v1/tasks', payload)
+      if (selectedTemplateId) {
+        api.post(`/api/v1/templates/${selectedTemplateId}/use`).catch(() => {})
+      }
       onCreate(res.data)
       onClose()
     } catch (err) {
@@ -59,11 +95,108 @@ function CreateTaskModal({ projectId, orgUsers, onClose, onCreate }) {
         </div>
         <form id="create-task-form" onSubmit={handleSubmit}>
           <div className="modal-body">
-            <div className="form-group">
+            <div className="form-group" id="task-title-group" style={{ position: 'relative' }}>
               <label className="form-label" htmlFor="task-title">Task title *</label>
-              <input id="task-title" className="form-input" value={form.title}
-                onChange={e => setForm({ ...form, title: e.target.value })}
-                placeholder="What needs to be done?" required />
+              <input
+                id="task-title"
+                className="form-input"
+                value={form.title}
+                onChange={e => {
+                  setForm({ ...form, title: e.target.value })
+                  setSelectedTemplateId(null)
+                  setShowTemplatesDropdown(true)
+                }}
+                onFocus={() => setShowTemplatesDropdown(true)}
+                placeholder="What needs to be done? (type or select a template)"
+                required
+                autoComplete="off"
+              />
+              {showTemplatesDropdown && templates.length > 0 && (() => {
+                const searchLower = form.title.toLowerCase()
+                const filtered = templates.filter(t => t.title.toLowerCase().includes(searchLower))
+                const recentlyUsed = filtered.filter(t => t.usage_count > 0)
+                const categorySuggestions = filtered.filter(t => t.usage_count === 0 && t.category_id === projectCategoryId)
+                const otherSuggestions = filtered.filter(t => t.usage_count === 0 && t.category_id !== projectCategoryId)
+                
+                const hasSuggestions = recentlyUsed.length > 0 || categorySuggestions.length > 0 || otherSuggestions.length > 0
+
+                if (!hasSuggestions) return null
+
+                return (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      background: 'var(--surface-card)',
+                      border: '1px solid var(--gray-200)',
+                      borderRadius: 'var(--radius)',
+                      boxShadow: 'var(--shadow-lg)',
+                      maxHeight: '220px',
+                      overflowY: 'auto',
+                      zIndex: 1000,
+                      marginTop: '4px',
+                      padding: '4px 0'
+                    }}
+                  >
+                    {recentlyUsed.length > 0 && (
+                      <div style={{ borderBottom: '1px solid var(--gray-100)' }}>
+                        <div style={{ padding: '6px 12px 2px 12px', fontSize: '10px', textTransform: 'uppercase', color: 'var(--brand-600)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                          Recently & Frequently Used
+                        </div>
+                        {recentlyUsed.slice(0, 5).map(t => (
+                          <div
+                            key={t.id}
+                            onClick={() => handleTemplateSelect(t)}
+                            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--text-sm)', borderBottom: '1px solid var(--gray-50)' }}
+                            className="template-item"
+                          >
+                            <div style={{ fontWeight: 500 }}>{t.title}</div>
+                            {t.description && <div style={{ fontSize: '11px', color: 'var(--gray-400)' }}>{t.description}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {categorySuggestions.length > 0 && (
+                      <div style={{ borderBottom: '1px solid var(--gray-100)' }}>
+                        <div style={{ padding: '6px 12px 2px 12px', fontSize: '10px', textTransform: 'uppercase', color: 'var(--info-dark)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                          Suggested for this Project Category
+                        </div>
+                        {categorySuggestions.map(t => (
+                          <div
+                            key={t.id}
+                            onClick={() => handleTemplateSelect(t)}
+                            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--text-sm)', borderBottom: '1px solid var(--gray-50)' }}
+                            className="template-item"
+                          >
+                            <div style={{ fontWeight: 500 }}>{t.title}</div>
+                            {t.description && <div style={{ fontSize: '11px', color: 'var(--gray-400)' }}>{t.description}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {otherSuggestions.length > 0 && (
+                      <div>
+                        <div style={{ padding: '6px 12px 2px 12px', fontSize: '10px', textTransform: 'uppercase', color: 'var(--gray-400)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                          Other Templates
+                        </div>
+                        {otherSuggestions.slice(0, 10).map(t => (
+                          <div
+                            key={t.id}
+                            onClick={() => handleTemplateSelect(t)}
+                            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--text-sm)' }}
+                            className="template-item"
+                          >
+                            <div style={{ fontWeight: 500 }}>{t.title}</div>
+                            {t.description && <div style={{ fontSize: '11px', color: 'var(--gray-400)' }}>{t.description}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="task-desc">Description</label>
@@ -674,10 +807,22 @@ function EditProjectModal({ project, onClose, onUpdate }) {
     name: project.name,
     description: project.description || '',
     status: project.status,
-    due_date: project.due_date ? project.due_date.substring(0, 10) : ''
+    due_date: project.due_date ? project.due_date.substring(0, 10) : '',
+    category_id: project.category_id || ''
   })
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const res = await api.get('/api/v1/categories')
+        setCategories(res.data)
+      } catch { /* silent */ }
+    }
+    fetchCats()
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -688,7 +833,8 @@ function EditProjectModal({ project, onClose, onUpdate }) {
         name: form.name,
         description: form.description || null,
         status: form.status,
-        due_date: form.due_date ? new Date(form.due_date).toISOString() : null
+        due_date: form.due_date ? new Date(form.due_date).toISOString() : null,
+        category_id: form.category_id || null
       }
       const res = await api.put(`/api/v1/projects/${project.id}`, payload)
       onUpdate(res.data)
@@ -713,6 +859,15 @@ function EditProjectModal({ project, onClose, onUpdate }) {
               <label className="form-label" htmlFor="edit-proj-name">Project name *</label>
               <input id="edit-proj-name" className="form-input" value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="edit-proj-category">Project Category</label>
+              <select id="edit-proj-category" className="form-input form-select"
+                value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })}>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="edit-proj-desc">Description</label>
@@ -1062,6 +1217,11 @@ export default function ProjectDetail() {
               <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--gray-900)' }}>
                 {project.name}
               </h2>
+              {project.category_name && (
+                <span className="badge" style={{ background: 'var(--gray-100)', color: 'var(--gray-600)', fontSize: '0.75rem', padding: '2px 8px', fontWeight: 600 }}>
+                  {project.category_name}
+                </span>
+              )}
               <span className={`badge badge-${project.status}`} style={{ fontSize: '0.75rem' }}>
                 {project.status.replace('_', ' ')}
               </span>
@@ -1650,6 +1810,7 @@ export default function ProjectDetail() {
       {showTaskModal && (
         <CreateTaskModal
           projectId={projectId}
+          projectCategoryId={project?.category_id}
           orgUsers={orgUsers}
           onClose={() => setShowTaskModal(false)}
           onCreate={(newTask) => setTasks(prev => [newTask, ...prev])}

@@ -1095,3 +1095,8 @@ h5 { font-size: var(--text-base); font-weight: 600; }
   border-left-color: #c084fc !important;
 }
 
+/* ── Template Item Hover Styling ── */
+.template-item:hover {
+  background: var(--gray-50);
+}
+

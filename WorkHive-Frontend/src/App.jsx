@@ -8,6 +8,7 @@ import ProjectDetail from './pages/ProjectDetail'
 import Team from './pages/Team'
 import AuditLogs from './pages/AuditLogs'
 import CalendarPage from './pages/Calendar'
+import Templates from './pages/Templates'
 import NotFound from './pages/NotFound'
 
 function AppRoutes() {
@@ -72,6 +73,10 @@ function AppRoutes() {
       <Route
         path="/audit"
         element={isAuthenticated && user?.role === 'L1' ? <AuditLogs /> : <Navigate to="/dashboard" replace />}
+      />
+      <Route
+        path="/templates"
+        element={isAuthenticated && user?.role === 'L1' ? <Templates /> : <Navigate to="/dashboard" replace />}
       />
       <Route
         path="/"

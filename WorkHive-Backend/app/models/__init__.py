@@ -10,6 +10,9 @@ from app.models.chat_room import ChatRoom
 from app.models.chat_message import ChatMessage
 from app.models.notification import Notification
 from app.models.audit_log import AuditLog
+from app.models.project_category import ProjectCategory
+from app.models.task_template import TaskTemplate
+from app.models.task_template_usage import TaskTemplateUsage
 
 __all__ = [
     "User",
@@ -25,4 +28,7 @@ __all__ = [
     "ChatMessage",
     "Notification",
     "AuditLog",
+    "ProjectCategory",
+    "TaskTemplate",
+    "TaskTemplateUsage",
 ]

@@ -21,16 +21,37 @@ const STATUS_COLORS = {
 }
 
 function CreateProjectModal({ onClose, onCreate }) {
-  const [form, setForm] = useState({ name: '', description: '', due_date: '' })
+  const [form, setForm] = useState({ name: '', description: '', due_date: '', category_id: '' })
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const res = await api.get('/api/v1/categories')
+        setCategories(res.data)
+        const general = res.data.find(c => c.name === 'General')
+        if (general) {
+          setForm(f => ({ ...f, category_id: general.id }))
+        } else if (res.data.length > 0) {
+          setForm(f => ({ ...f, category_id: res.data[0].id }))
+        }
+      } catch { /* silent */ }
+    }
+    fetchCats()
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError('')
     try {
-      const payload = { name: form.name, description: form.description || null }
+      const payload = { 
+        name: form.name, 
+        description: form.description || null,
+        category_id: form.category_id || null
+      }
       if (form.due_date) payload.due_date = new Date(form.due_date).toISOString()
       const res = await api.post('/api/v1/projects', payload)
       onCreate(res.data)
@@ -63,6 +84,19 @@ function CreateProjectModal({ onClose, onCreate }) {
                 placeholder="e.g. Website Redesign"
                 required
               />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="proj-category">Project Category</label>
+              <select
+                id="proj-category"
+                className="form-input form-select"
+                value={form.category_id}
+                onChange={e => setForm({ ...form, category_id: e.target.value })}
+              >
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="proj-desc">Description</label>
@@ -246,12 +280,19 @@ export default function Projects() {
               >
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-3)' }}>
-                  <h3 style={{
-                    fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--gray-900)',
-                    lineHeight: 1.3, flex: 1, marginRight: 'var(--space-2)'
-                  }}>
-                    {project.name}
-                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, marginRight: 'var(--space-2)' }}>
+                    <h3 style={{
+                      fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--gray-900)',
+                      lineHeight: 1.3
+                    }}>
+                      {project.name}
+                    </h3>
+                    {project.category_name && (
+                      <span className="badge" style={{ background: 'var(--gray-100)', color: 'var(--gray-600)', fontSize: '11px', alignSelf: 'flex-start', padding: '1px 6px', fontWeight: 600 }}>
+                        {project.category_name}
+                      </span>
+                    )}
+                  </div>
                   <span className="badge" style={{ background: colors.bg, color: colors.text, flexShrink: 0 }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: colors.dot, display: 'inline-block' }} />
                     {project.status.replace('_', ' ')}

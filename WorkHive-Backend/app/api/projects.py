@@ -9,6 +9,7 @@ from app.models.project import Project, ProjectStatus
 from app.models.user import User, UserRole
 from app.api.auth import get_current_user, require_role
 from app.models.task import Task
+from app.models.project_category import ProjectCategory
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
@@ -18,6 +19,7 @@ class ProjectCreate(BaseModel):
     name: str
     description: Optional[str] = None
     due_date: Optional[datetime] = None
+    category_id: Optional[str] = None
 
 
 class ProjectUpdate(BaseModel):
@@ -25,6 +27,7 @@ class ProjectUpdate(BaseModel):
     description: Optional[str] = None
     status: Optional[ProjectStatus] = None
     due_date: Optional[datetime] = None
+    category_id: Optional[str] = None
 
 
 class ProjectResponse(BaseModel):
@@ -35,6 +38,8 @@ class ProjectResponse(BaseModel):
     due_date: Optional[str]
     created_by: str
     created_by_name: Optional[str] = None
+    category_id: Optional[str] = None
+    category_name: Optional[str] = None
     created_at: str
 
 
@@ -58,12 +63,29 @@ async def create_project(
     current_user: User = Depends(require_role([UserRole.L1, UserRole.L2])),
     db: Session = Depends(get_db)
 ):
+    cat_id = None
+    if project.category_id:
+        try:
+            cat_uuid = uuid.UUID(project.category_id)
+            cat = db.query(ProjectCategory).filter(ProjectCategory.id == cat_uuid).first()
+            if cat:
+                cat_id = cat.id
+        except ValueError:
+            pass
+            
+    if not cat_id:
+        # Fallback to General category
+        general_cat = db.query(ProjectCategory).filter(ProjectCategory.name == "General").first()
+        if general_cat:
+            cat_id = general_cat.id
+
     new_project = Project(
         org_id=current_user.organisation_id,
         name=project.name,
         description=project.description,
         status=ProjectStatus.PLANNING,
         due_date=project.due_date,
+        category_id=cat_id,
         created_by=current_user.id
     )
     
@@ -84,6 +106,8 @@ async def create_project(
         due_date=new_project.due_date.isoformat() if new_project.due_date else None,
         created_by=str(new_project.created_by),
         created_by_name=current_user.full_name,
+        category_id=str(new_project.category_id) if new_project.category_id else None,
+        category_name=new_project.category.name if new_project.category else None,
         created_at=new_project.created_at.isoformat()
     )
 
@@ -144,6 +168,8 @@ async def get_projects(
             due_date=p.due_date.isoformat() if p.due_date else None,
             created_by=str(p.created_by),
             created_by_name=creator_map.get(str(p.created_by)),
+            category_id=str(p.category_id) if p.category_id else None,
+            category_name=p.category.name if p.category else None,
             created_at=p.created_at.isoformat()
         )
         for p in projects
@@ -206,6 +232,8 @@ async def get_project(
         due_date=project.due_date.isoformat() if project.due_date else None,
         created_by=str(project.created_by),
         created_by_name=creator_name,
+        category_id=str(project.category_id) if project.category_id else None,
+        category_name=project.category.name if project.category else None,
         created_at=project.created_at.isoformat()
     )
 
@@ -240,6 +268,24 @@ async def update_project(
         project.status = project_update.status
     if project_update.due_date is not None:
         project.due_date = project_update.due_date
+    if project_update.category_id is not None:
+        if not project_update.category_id:
+            project.category_id = None
+        else:
+            try:
+                cat_uuid = uuid.UUID(project_update.category_id)
+                cat = db.query(ProjectCategory).filter(ProjectCategory.id == cat_uuid).first()
+                if not cat:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Project category not found"
+                    )
+                project.category_id = cat.id
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid category UUID format"
+                )
     
     # Log project update
     from app.core.audit import log_audit
@@ -261,6 +307,8 @@ async def update_project(
         due_date=project.due_date.isoformat() if project.due_date else None,
         created_by=str(project.created_by),
         created_by_name=creator_name,
+        category_id=str(project.category_id) if project.category_id else None,
+        category_name=project.category.name if project.category else None,
         created_at=project.created_at.isoformat()
     )
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
 import api from '../lib/api'
-import { LayoutDashboard, Briefcase, Users, Bell, BellOff, LogOut, Menu, X, Shield, Calendar } from 'lucide-react'
+import { LayoutDashboard, Briefcase, Users, Bell, BellOff, LogOut, Menu, X, Shield, Calendar, Layers } from 'lucide-react'
 
 const NAV_ITEMS = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { path: '/calendar',  icon: Calendar, label: 'Calendar' },
   { path: '/team',      icon: Users, label: 'Team',      roles: ['L1', 'L2'] },
   { path: '/audit',     icon: Shield, label: 'Audit Logs', roles: ['L1'] },
+  { path: '/templates', icon: Layers, label: 'Templates', roles: ['L1'] },
 ]
 
 function NotificationBell() {

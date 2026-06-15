@@ -24,9 +24,11 @@ class Project(Base):
     status = Column(Enum(ProjectStatus), default=ProjectStatus.PLANNING, nullable=False)
     due_date = Column(DateTime(timezone=True), nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    category_id = Column(UUID(as_uuid=True), ForeignKey("project_categories.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     organisation = relationship("Organisation", back_populates="projects")
+    category = relationship("ProjectCategory", back_populates="projects")
     tasks = relationship("Task", back_populates="project")
     files = relationship("File", back_populates="project")
     chat_rooms = relationship("ChatRoom", back_populates="project")
