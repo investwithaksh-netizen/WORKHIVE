@@ -35,3 +35,9 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Normalize DATABASE_URL for driver compatibility
+if settings.DATABASE_URL.startswith("mysql://"):
+    settings.DATABASE_URL = settings.DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
+elif settings.DATABASE_URL.startswith("postgres://"):
+    settings.DATABASE_URL = settings.DATABASE_URL.replace("postgres://", "postgresql://", 1)
