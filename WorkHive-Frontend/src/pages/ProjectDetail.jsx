@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
 import Layout from '../components/Layout'
@@ -17,26 +17,15 @@ function autoTag(filename) {
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
-function CreateTaskModal({ projectId, projectCategoryId, orgUsers, onClose, onCreate }) {
+function CreateTaskModal({ projectId, projectCategoryId, orgUsers, templates = [], onClose, onCreate }) {
   const [form, setForm] = useState({
     title: '', description: '', priority: 'medium', assignee_ids: [], due_date: '', start_date: '', estimated_hours: ''
   })
-  const [templates, setTemplates] = useState([])
   const [showTemplatesDropdown, setShowTemplatesDropdown] = useState(false)
   const [selectedTemplateId, setSelectedTemplateId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false)
-
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      try {
-        const res = await api.get('/api/v1/templates')
-        setTemplates(res.data)
-      } catch { /* silent */ }
-    }
-    fetchTemplates()
-  }, [])
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -47,6 +36,19 @@ function CreateTaskModal({ projectId, projectCategoryId, orgUsers, onClose, onCr
     document.addEventListener('mousedown', handleOutsideClick)
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [])
+
+  const suggestions = useMemo(() => {
+    if (!templates || !templates.length) {
+      return { recentlyUsed: [], categorySuggestions: [], otherSuggestions: [], hasSuggestions: false }
+    }
+    const searchLower = form.title.toLowerCase()
+    const filtered = templates.filter(t => t.title.toLowerCase().includes(searchLower))
+    const recentlyUsed = filtered.filter(t => t.usage_count > 0)
+    const categorySuggestions = filtered.filter(t => t.usage_count === 0 && t.category_id === projectCategoryId)
+    const otherSuggestions = filtered.filter(t => t.usage_count === 0 && t.category_id !== projectCategoryId)
+    const hasSuggestions = recentlyUsed.length > 0 || categorySuggestions.length > 0 || otherSuggestions.length > 0
+    return { recentlyUsed, categorySuggestions, otherSuggestions, hasSuggestions }
+  }, [templates, form.title, projectCategoryId])
 
   const handleTemplateSelect = (tpl) => {
     setForm(f => ({
@@ -111,92 +113,80 @@ function CreateTaskModal({ projectId, projectCategoryId, orgUsers, onClose, onCr
                 required
                 autoComplete="off"
               />
-              {showTemplatesDropdown && templates.length > 0 && (() => {
-                const searchLower = form.title.toLowerCase()
-                const filtered = templates.filter(t => t.title.toLowerCase().includes(searchLower))
-                const recentlyUsed = filtered.filter(t => t.usage_count > 0)
-                const categorySuggestions = filtered.filter(t => t.usage_count === 0 && t.category_id === projectCategoryId)
-                const otherSuggestions = filtered.filter(t => t.usage_count === 0 && t.category_id !== projectCategoryId)
-                
-                const hasSuggestions = recentlyUsed.length > 0 || categorySuggestions.length > 0 || otherSuggestions.length > 0
-
-                if (!hasSuggestions) return null
-
-                return (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      background: 'var(--surface-card)',
-                      border: '1px solid var(--gray-200)',
-                      borderRadius: 'var(--radius)',
-                      boxShadow: 'var(--shadow-lg)',
-                      maxHeight: '220px',
-                      overflowY: 'auto',
-                      zIndex: 1000,
-                      marginTop: '4px',
-                      padding: '4px 0'
-                    }}
-                  >
-                    {recentlyUsed.length > 0 && (
-                      <div style={{ borderBottom: '1px solid var(--gray-100)' }}>
-                        <div style={{ padding: '6px 12px 2px 12px', fontSize: '10px', textTransform: 'uppercase', color: 'var(--brand-600)', fontWeight: 700, letterSpacing: '0.05em' }}>
-                          Recently & Frequently Used
-                        </div>
-                        {recentlyUsed.slice(0, 5).map(t => (
-                          <div
-                            key={t.id}
-                            onClick={() => handleTemplateSelect(t)}
-                            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--text-sm)', borderBottom: '1px solid var(--gray-50)' }}
-                            className="template-item"
-                          >
-                            <div style={{ fontWeight: 500 }}>{t.title}</div>
-                            {t.description && <div style={{ fontSize: '11px', color: 'var(--gray-400)' }}>{t.description}</div>}
-                          </div>
-                        ))}
+              {showTemplatesDropdown && suggestions.hasSuggestions && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'var(--surface-card)',
+                    border: '1px solid var(--gray-200)',
+                    borderRadius: 'var(--radius)',
+                    boxShadow: 'var(--shadow-lg)',
+                    maxHeight: '220px',
+                    overflowY: 'auto',
+                    zIndex: 1000,
+                    marginTop: '4px',
+                    padding: '4px 0'
+                  }}
+                >
+                  {suggestions.recentlyUsed.length > 0 && (
+                    <div style={{ borderBottom: '1px solid var(--gray-100)' }}>
+                      <div style={{ padding: '6px 12px 2px 12px', fontSize: '10px', textTransform: 'uppercase', color: 'var(--brand-600)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                        Recently & Frequently Used
                       </div>
-                    )}
-                    {categorySuggestions.length > 0 && (
-                      <div style={{ borderBottom: '1px solid var(--gray-100)' }}>
-                        <div style={{ padding: '6px 12px 2px 12px', fontSize: '10px', textTransform: 'uppercase', color: 'var(--info-dark)', fontWeight: 700, letterSpacing: '0.05em' }}>
-                          Suggested for this Project Category
+                      {suggestions.recentlyUsed.slice(0, 5).map(t => (
+                        <div
+                          key={t.id}
+                          onClick={() => handleTemplateSelect(t)}
+                          style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--text-sm)', borderBottom: '1px solid var(--gray-50)' }}
+                          className="template-item"
+                        >
+                          <div style={{ fontWeight: 500 }}>{t.title}</div>
+                          {t.description && <div style={{ fontSize: '11px', color: 'var(--gray-400)' }}>{t.description}</div>}
                         </div>
-                        {categorySuggestions.map(t => (
-                          <div
-                            key={t.id}
-                            onClick={() => handleTemplateSelect(t)}
-                            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--text-sm)', borderBottom: '1px solid var(--gray-50)' }}
-                            className="template-item"
-                          >
-                            <div style={{ fontWeight: 500 }}>{t.title}</div>
-                            {t.description && <div style={{ fontSize: '11px', color: 'var(--gray-400)' }}>{t.description}</div>}
-                          </div>
-                        ))}
+                      ))}
+                    </div>
+                  )}
+                  {suggestions.categorySuggestions.length > 0 && (
+                    <div style={{ borderBottom: '1px solid var(--gray-100)' }}>
+                      <div style={{ padding: '6px 12px 2px 12px', fontSize: '10px', textTransform: 'uppercase', color: 'var(--info-dark)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                        Suggested for this Project Category
                       </div>
-                    )}
-                    {otherSuggestions.length > 0 && (
-                      <div>
-                        <div style={{ padding: '6px 12px 2px 12px', fontSize: '10px', textTransform: 'uppercase', color: 'var(--gray-400)', fontWeight: 700, letterSpacing: '0.05em' }}>
-                          Other Templates
+                      {suggestions.categorySuggestions.slice(0, 10).map(t => (
+                        <div
+                          key={t.id}
+                          onClick={() => handleTemplateSelect(t)}
+                          style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--text-sm)', borderBottom: '1px solid var(--gray-50)' }}
+                          className="template-item"
+                        >
+                          <div style={{ fontWeight: 500 }}>{t.title}</div>
+                          {t.description && <div style={{ fontSize: '11px', color: 'var(--gray-400)' }}>{t.description}</div>}
                         </div>
-                        {otherSuggestions.slice(0, 10).map(t => (
-                          <div
-                            key={t.id}
-                            onClick={() => handleTemplateSelect(t)}
-                            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--text-sm)' }}
-                            className="template-item"
-                          >
-                            <div style={{ fontWeight: 500 }}>{t.title}</div>
-                            {t.description && <div style={{ fontSize: '11px', color: 'var(--gray-400)' }}>{t.description}</div>}
-                          </div>
-                        ))}
+                      ))}
+                    </div>
+                  )}
+                  {suggestions.otherSuggestions.length > 0 && (
+                    <div>
+                      <div style={{ padding: '6px 12px 2px 12px', fontSize: '10px', textTransform: 'uppercase', color: 'var(--gray-400)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                        Other Templates
                       </div>
-                    )}
-                  </div>
-                )
-              })()}
+                      {suggestions.otherSuggestions.slice(0, 10).map(t => (
+                        <div
+                          key={t.id}
+                          onClick={() => handleTemplateSelect(t)}
+                          style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--text-sm)' }}
+                          className="template-item"
+                        >
+                          <div style={{ fontWeight: 500 }}>{t.title}</div>
+                          {t.description && <div style={{ fontSize: '11px', color: 'var(--gray-400)' }}>{t.description}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="task-desc">Description</label>
@@ -928,6 +918,7 @@ export default function ProjectDetail() {
   const [tasks, setTasks] = useState([])
   const [files, setFiles] = useState([])
   const [orgUsers, setOrgUsers] = useState([])
+  const [templates, setTemplates] = useState([])
   const [projectAccess, setProjectAccess] = useState([])
   const [loading, setLoading] = useState(true)
   const [accessLoading, setAccessLoading] = useState(false)
@@ -970,16 +961,18 @@ export default function ProjectDetail() {
 
   const fetchAll = async () => {
     try {
-      const [projRes, tasksRes, filesRes, usersRes] = await Promise.all([
+      const [projRes, tasksRes, filesRes, usersRes, templatesRes] = await Promise.all([
         api.get(`/api/v1/projects/${projectId}`),
         api.get(`/api/v1/tasks/project/${projectId}`),
         api.get(`/api/v1/files/project/${projectId}`).catch(() => ({ data: [] })),
         api.get('/api/v1/users/org').catch(() => ({ data: [] })),
+        api.get('/api/v1/templates').catch(() => ({ data: [] })),
       ])
       setProject(projRes.data)
       setTasks(tasksRes.data)
       setFiles(filesRes.data)
       setOrgUsers(usersRes.data)
+      setTemplates(templatesRes.data)
       
       if (isWorkspaceAdminOrManager) {
         fetchAccess()
@@ -1812,6 +1805,7 @@ export default function ProjectDetail() {
           projectId={projectId}
           projectCategoryId={project?.category_id}
           orgUsers={orgUsers}
+          templates={templates}
           onClose={() => setShowTaskModal(false)}
           onCreate={(newTask) => setTasks(prev => [newTask, ...prev])}
         />
