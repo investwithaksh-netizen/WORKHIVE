@@ -544,7 +544,7 @@ export default function Dashboard() {
       )}
 
       {/* Main grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)', alignItems: 'start' }}>
+      <div className="dashboard-grid">
         {/* Left Column: My Tasks + My Personal Tasks */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           {/* My Tasks */}

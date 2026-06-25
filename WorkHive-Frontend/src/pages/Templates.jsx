@@ -215,7 +215,7 @@ export default function Templates() {
           <div className="spinner spinner-dark" />
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 'var(--space-6)', alignItems: 'start' }}>
+        <div className="templates-grid">
           
           {/* LEFT COLUMN: Categories list */}
           <div className="card" style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

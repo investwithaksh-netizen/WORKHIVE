@@ -137,14 +137,12 @@ export default function Login() {
   }
 
   return (
-    <div style={{
+    <div className="login-container" style={{
       minHeight: '100vh',
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
       fontFamily: 'var(--font-sans)',
     }}>
       {/* ── Left: Branding panel ── */}
-      <div style={{
+      <div className="login-left" style={{
         background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 75%, #6366f1 100%)',
         backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='800' viewBox='0 0 800 800'%3E%3Cpath d='M-100,100 C100,150 200,-50 400,100 C600,250 700,50 900,100' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.05'/%3E%3Cpath d='M-100,180 C120,220 180,60 420,200 C640,320 680,160 900,180' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.05'/%3E%3Cpath d='M-100,260 C150,290 220,130 450,270 C620,390 720,210 900,260' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.05'/%3E%3Cpath d='M-100,340 C110,390 240,230 410,380 C630,490 710,320 900,340' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.05'/%3E%3Cpath d='M-100,420 C130,480 210,310 430,440 C650,560 690,400 900,420' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.05'/%3E%3Cpath d='M-100,500 C140,540 230,390 460,520 C610,640 730,470 900,500' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.05'/%3E%3Cpath d='M-100,580 C120,630 250,480 420,610 C640,730 700,560 900,580' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.05'/%3E%3Cpath d='M-100,660 C160,710 220,550 440,680 C660,810 680,630 900,660' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.05'/%3E%3Cpath d='M-100,740 C150,790 240,640 450,770 C630,890 720,710 900,740' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.05'/%3E%3C/svg%3E"), linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 75%, #6366f1 100%)`,
         backgroundSize: '800px 800px, auto',
@@ -218,7 +216,7 @@ export default function Login() {
       </div>
 
       {/* ── Right: Forms ── */}
-      <div style={{
+      <div className="login-right" style={{
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',

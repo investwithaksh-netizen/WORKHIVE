@@ -235,124 +235,124 @@ export default function CalendarPage() {
       </div>
 
       {/* Calendar Grid Container */}
-      <div style={{
-        background: 'var(--surface-card)',
-        borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--gray-150)',
-        boxShadow: 'var(--shadow-sm)',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '650px'
-      }}>
-        {/* Day Name Header */}
+      <div style={{ overflowX: 'auto', width: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--gray-150)', boxShadow: 'var(--shadow-sm)' }}>
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          borderBottom: '1px solid var(--gray-150)',
-          background: 'var(--gray-50)',
-          textAlign: 'center',
-          fontWeight: 600,
-          fontSize: 'var(--text-xs)',
-          color: 'var(--gray-500)',
-          padding: '0.75rem 0'
+          background: 'var(--surface-card)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '650px',
+          minWidth: '700px'
         }}>
-          {dayNames.map(day => <div key={day}>{day}</div>)}
-        </div>
-
-        {/* Days Grid */}
-        {loading ? (
-          <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <div className="spinner spinner-dark" />
-          </div>
-        ) : (
+          {/* Day Name Header */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(7, 1fr)',
-            gridAutoRows: 'minmax(100px, 1fr)',
-            flex: 1
+            borderBottom: '1px solid var(--gray-150)',
+            background: 'var(--gray-50)',
+            textAlign: 'center',
+            fontWeight: 600,
+            fontSize: 'var(--text-xs)',
+            color: 'var(--gray-500)',
+            padding: '0.75rem 0'
           }}>
-            {daysGrid.map((cell, idx) => {
-              const cellTasks = getTasksForDate(cell)
-              const isToday = new Date().getDate() === cell.day &&
-                new Date().getMonth() === cell.month &&
-                new Date().getFullYear() === cell.year
-
-              return (
-                <div
-                  key={idx}
-                  style={{
-                    borderRight: (idx + 1) % 7 === 0 ? 'none' : '1px solid var(--gray-150)',
-                    borderBottom: idx >= daysGrid.length - 7 ? 'none' : '1px solid var(--gray-150)',
-                    background: cell.isCurrentMonth ? 'transparent' : 'var(--gray-50)',
-                    padding: '0.5rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minWidth: 0,
-                    position: 'relative',
-                    transition: 'background var(--transition-fast)'
-                  }}
-                >
-                  {/* Day label */}
-                  <div style={{
-                    alignSelf: 'flex-start',
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: isToday ? 800 : 500,
-                    color: isToday ? 'white' : cell.isCurrentMonth ? 'var(--gray-800)' : 'var(--gray-400)',
-                    background: isToday ? 'var(--brand-600)' : 'transparent',
-                    width: isToday ? 22 : 'auto',
-                    height: isToday ? 22 : 'auto',
-                    borderRadius: isToday ? '50%' : 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: '0.375rem',
-                  }}>
-                    {cell.day}
-                  </div>
-
-                  {/* Task list container */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', overflowY: 'auto', flex: 1, minHeight: 0 }}>
-                    {cellTasks.map(task => {
-                      const colors = priorityColors[task.priority] || priorityColors.medium
-                      const cellDateStr = `${cell.year}-${String(cell.month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`
-                      const dueStr = task.due_date ? task.due_date.substring(0, 10) : ''
-                      const isCellOverdue = task.due_date && cellDateStr > dueStr && task.status !== 'done'
-
-                      return (
-                        <div
-                          key={task.id}
-                          onClick={() => setSelectedTask(task)}
-                          className={`${isCellOverdue ? 'calendar-task-overdue' : ''} ${task.is_personal ? 'calendar-task-personal' : ''}`}
-                          style={{
-                            background: task.is_personal ? 'rgba(192, 132, 252, 0.1)' : colors.bg,
-                            color: task.is_personal ? '#9333ea' : colors.text,
-                            borderLeft: `3px solid ${task.is_personal ? '#c084fc' : colors.border}`,
-                            padding: '0.25rem 0.375rem',
-                            borderRadius: 'var(--radius-sm)',
-                            fontSize: '10px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            transition: 'transform var(--transition-fast)'
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)' }}
-                          onMouseLeave={e => { e.currentTarget.style.transform = 'none' }}
-                          title={`${task.title} (Priority: ${task.priority})${task.is_personal ? ' - Personal' : ''}${isCellOverdue ? ' - OVERDUE' : ''}`}
-                        >
-                          {task.is_personal && <span style={{ marginRight: '2px' }}>🔒</span>}
-                          {task.title}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
+            {dayNames.map(day => <div key={day}>{day}</div>)}
           </div>
-        )}
+
+          {/* Days Grid */}
+          {loading ? (
+            <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <div className="spinner spinner-dark" />
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gridAutoRows: 'minmax(100px, 1fr)',
+              flex: 1
+            }}>
+              {daysGrid.map((cell, idx) => {
+                const cellTasks = getTasksForDate(cell)
+                const isToday = new Date().getDate() === cell.day &&
+                  new Date().getMonth() === cell.month &&
+                  new Date().getFullYear() === cell.year
+
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      borderRight: (idx + 1) % 7 === 0 ? 'none' : '1px solid var(--gray-150)',
+                      borderBottom: idx >= daysGrid.length - 7 ? 'none' : '1px solid var(--gray-150)',
+                      background: cell.isCurrentMonth ? 'transparent' : 'var(--gray-50)',
+                      padding: '0.5rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      minWidth: 0,
+                      position: 'relative',
+                      transition: 'background var(--transition-fast)'
+                    }}
+                  >
+                    {/* Day label */}
+                    <div style={{
+                      alignSelf: 'flex-start',
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: isToday ? 800 : 500,
+                      color: isToday ? 'white' : cell.isCurrentMonth ? 'var(--gray-800)' : 'var(--gray-400)',
+                      background: isToday ? 'var(--brand-600)' : 'transparent',
+                      width: isToday ? 22 : 'auto',
+                      height: isToday ? 22 : 'auto',
+                      borderRadius: isToday ? '50%' : 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: '0.375rem',
+                    }}>
+                      {cell.day}
+                    </div>
+
+                    {/* Task list container */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+                      {cellTasks.map(task => {
+                        const colors = priorityColors[task.priority] || priorityColors.medium
+                        const cellDateStr = `${cell.year}-${String(cell.month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`
+                        const dueStr = task.due_date ? task.due_date.substring(0, 10) : ''
+                        const isCellOverdue = task.due_date && cellDateStr > dueStr && task.status !== 'done'
+
+                        return (
+                          <div
+                            key={task.id}
+                            onClick={() => setSelectedTask(task)}
+                            className={`${isCellOverdue ? 'calendar-task-overdue' : ''} ${task.is_personal ? 'calendar-task-personal' : ''}`}
+                            style={{
+                              background: task.is_personal ? 'rgba(192, 132, 252, 0.1)' : colors.bg,
+                              color: task.is_personal ? '#9333ea' : colors.text,
+                              borderLeft: `3px solid ${task.is_personal ? '#c084fc' : colors.border}`,
+                              padding: '0.25rem 0.375rem',
+                              borderRadius: 'var(--radius-sm)',
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              transition: 'transform var(--transition-fast)'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)' }}
+                            onMouseLeave={e => { e.currentTarget.style.transform = 'none' }}
+                            title={`${task.title} (Priority: ${task.priority})${task.is_personal ? ' - Personal' : ''}${isCellOverdue ? ' - OVERDUE' : ''}`}
+                          >
+                            {task.is_personal && <span style={{ marginRight: '2px' }}>🔒</span>}
+                            {task.title}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Task Quick-View Modal */}

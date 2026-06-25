@@ -1100,3 +1100,68 @@ h5 { font-size: var(--text-base); font-weight: 600; }
   background: var(--gray-50);
 }
 
+/* ── Responsive Layouts ── */
+.login-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.login-left {
+  /* Branding panel container */
+}
+.login-right {
+  /* Forms panel container */
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.templates-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+/* ── Mobile Responsive Overrides ── */
+@media (max-width: 768px) {
+  .login-container {
+    grid-template-columns: 1fr !important;
+  }
+  .login-left {
+    display: none !important;
+  }
+  .login-right {
+    padding: 1.5rem !important;
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .templates-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Horizontally Scrollable Tables ── */
+.table-container {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Horizontally Scrollable Tabs ── */
+.tabs {
+  display: flex !important;
+  gap: 0;
+  border-bottom: 2px solid var(--gray-200);
+  margin-bottom: var(--space-6);
+  overflow-x: auto !important;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.tabs::-webkit-scrollbar {
+  display: none !important;
+}
+
